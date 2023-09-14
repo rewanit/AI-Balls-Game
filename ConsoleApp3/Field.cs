@@ -52,12 +52,14 @@ namespace ConsoleApp3
         {
             //Console.WriteLine(Print()); 
             //Console.ReadLine();
-            return CompareArrays(this.Array, obj.Array);
+            var t = CompareArrays(this.Array, obj.Array);
+           
+            return t;
         }
 
         public int[][] Array { get; set; }
 
-        public Field MoveColumn(int columnId)
+        public Field MoveRow(int columnId)
         {
             var newField = Helper.Copy(Array);
             int rowCount = newField[0].Length;
@@ -71,7 +73,7 @@ namespace ConsoleApp3
             return new Field(newField);
         }
 
-        public Field MoveRow(int rowId)
+        public Field MoveCol(int rowId)
         {
             var newField = Helper.Copy(Array);
             int columnCount = newField.Length;

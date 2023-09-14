@@ -18,7 +18,7 @@ namespace ConsoleApp3
                 new int[] { 1, 2, 3, 4},
                 new int[] { 1, 2, 3, 4},
                 new int[] { 1, 2, 3, 4},
-                new int[] { 1, 2, 3, 4}
+                new int[] { 1, 4, 2, 3}
             };
 
 
@@ -27,7 +27,7 @@ namespace ConsoleApp3
                 new int[] { 1, 2, 3, 4},
                 new int[] { 1, 2, 3, 4},
                 new int[] { 1, 2, 3, 4},
-                new int[] { 2, 1, 3, 4}
+                new int[] { 1, 2, 3, 4}
             };
 
 
@@ -36,7 +36,6 @@ namespace ConsoleApp3
             var InitState = new State(InitField);
 
             State.Find(TargetField, new List<State> { InitState });
-
 
 
 

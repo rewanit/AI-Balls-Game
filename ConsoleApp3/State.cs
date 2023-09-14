@@ -4,7 +4,7 @@ namespace ConsoleApp3
 {
     public class State
     {
-
+        
         public enum MoveAction
         {
             Row,
@@ -30,14 +30,25 @@ namespace ConsoleApp3
         {
             for (int i = 0; i < Field.Array.Length; i++)
             {
-                var newField = Field.MoveRow(i);
-                ChildStates.Add(new State(newField,this, MoveAction.Column, i));
+                var newField = Field.MoveCol(i);
+                //if (!FieldsPool.Any(x=>x.Equals(newField)))
+                {
+                  //  FieldsPool.Add(newField);
+                    var newState = new State(newField, this, MoveAction.Column, i);
+                    ChildStates.Add(newState);
+                }
             }
             for (int i = 0; i < Field.Array.Length; i++)
             {
-                var newField = Field.MoveColumn(i);
-                ChildStates.Add(new State(newField,this,MoveAction.Row,i));
+                var newField = Field.MoveRow(i);
+                //if (!FieldsPool.Any(x=>x.Equals(newField)))
+                {
+                  //  FieldsPool.Add(newField);
+                    var newState = new State(newField, this, MoveAction.Row, i);
+                    ChildStates.Add(newState);
+                }
             }
+
         }
 
         static  public void Find(Field TargetField,List<State> pool)
