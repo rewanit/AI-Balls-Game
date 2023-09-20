@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿using System.ComponentModel.Design;
+using System.Diagnostics;
+using System.Runtime.Remoting;
+using System.Text;
 
 namespace ConsoleApp3
 {
@@ -19,80 +22,122 @@ namespace ConsoleApp3
             ActionId = actionId;
         }
 
+        public override int GetHashCode()
+        {
+            return Field.GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return this.GetHashCode() == obj.GetHashCode();
+        }
+
         public State? ParentState { get; set; }
         public MoveAction? Action { get; set; }
         public int? ActionId { get; set; }
         public Field Field { get; set; }
 
+
         public List<State> ChildStates { get; set; } = new List<State>();
 
-        private void GenStates()
+
+        private HashSet<State> GenStates(HashSet<State> existedStates)
         {
-            for (int i = 0; i < Field.Array.Length; i++)
+            var GenStates = new HashSet<State>();
+            for (int i = 0; i < Field.Array.GetLength(0); i++)
             {
                 var newField = Field.MoveCol(i);
-                //if (!FieldsPool.Any(x=>x.Equals(newField)))
+                var newState = new State(newField, this, MoveAction.Column, i);
+                if (!existedStates.Contains(newState))
                 {
-                  //  FieldsPool.Add(newField);
-                    var newState = new State(newField, this, MoveAction.Column, i);
+                    GenStates.Add(newState);
                     ChildStates.Add(newState);
                 }
             }
-            for (int i = 0; i < Field.Array.Length; i++)
+            for (int i = 0; i < Field.Array.GetLength(1); i++)
             {
                 var newField = Field.MoveRow(i);
-                //if (!FieldsPool.Any(x=>x.Equals(newField)))
+                var newState = new State(newField, this, MoveAction.Row, i);
+                if (!existedStates.Contains(newState))
                 {
-                  //  FieldsPool.Add(newField);
-                    var newState = new State(newField, this, MoveAction.Row, i);
+                    GenStates.Add(newState);
                     ChildStates.Add(newState);
                 }
             }
+            return GenStates;
 
         }
 
-        static  public void Find(Field TargetField,List<State> pool)
+        
+        static  public void Find(State TargetState,State StartState)
         {
-            var initState = pool.First();
-            //todo save result
-            while(!pool.Any(x => x.Field.Equals(TargetField)))
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var existedStates = new HashSet<State>();
+            var pool = new HashSet<State>
             {
-                foreach (var item in pool)
+                StartState
+            };
+            State? result = null;
+            while(pool.Count>0)
+            {
+                HashSet<State> newPool = new HashSet<State>();
+                if (pool.Contains(TargetState))
                 {
-                    item.GenStates();
+                    pool.TryGetValue(TargetState,out result);
+                    break;
+                }
+                else
+                {
+                    existedStates.UnionWith(pool);
+                    newPool = pool.AsParallel().Select( (x) =>
+                    {
+                        var genStates = x.GenStates(existedStates);
+                        
+                        return genStates;
+                    }).SelectMany(x=>x).ToHashSet();
+                }
+                pool = newPool;
+            }
+            stopwatch.Stop();
+            if (result is null)
+            {
+                Console.WriteLine("Решений нет");
+            }
+            else
+            {
+                Console.WriteLine("Последовательное решение");
+
+                var listToPrint = new List<string>();
+
+                while (result?.ParentState != null)
+                {
+                    listToPrint.Add(result.Print());
+                    result = result.ParentState;
                 }
 
-                pool = pool.SelectMany(x => x.ChildStates).ToList();
-                GC.Collect();
+                listToPrint.Reverse();
+                listToPrint.Insert(0, StartState.Print());
+                var step = 0;
+                foreach (var item in listToPrint)
+                {
+                    Console.WriteLine("Step: "+step++);
+                    Console.WriteLine(item);
+                }
+                Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
+                Console.WriteLine("Закрытых:" + existedStates.Count);
+                Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
             }
 
-            var result = pool.First(x => x.Field.Equals(TargetField));
-
-            Console.WriteLine("Последовательное решение");
-
-            var listToPrint = new List<string>();
-
-            while (result.ParentState!=null)
-            {
-                listToPrint.Add(result.Print());
-                result = result.ParentState;
-            }
-
-            listToPrint.Reverse();
-            listToPrint.Insert(0, initState.Print());
-
-            foreach (var item in listToPrint)
-            {
-                Console.WriteLine(item);
-            }
+            
 
         }
 
         public string Print()
         {
             var array = this.Field.Array;
-            int rows = array.Length;
-            int columns = array[0].Length;
+            int rows = array.GetLength(0);
+            int columns = array.GetLength(1);
 
             StringBuilder sb = new StringBuilder();
 
@@ -106,7 +151,7 @@ namespace ConsoleApp3
                             sb.Append("[");
                         }
 
-                    sb.Append(array[i][j]);
+                    sb.Append(array[i,j]);
 
                     if (Action.HasValue)
                         if (Action.Value == MoveAction.Row && i == ActionId || Action.Value == MoveAction.Column && j == ActionId)

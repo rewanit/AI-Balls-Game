@@ -3,9 +3,10 @@
     public static class Helper
     {
 
-        public static int[][] Copy(int[][] array)
+        public static int[,] Copy(int[,] array)
         {
-            return array.Select(a => a.ToArray()).ToArray();
+            int [,]  newArray = array.Clone() as int[,];
+            return newArray;
         } 
     }
 }
