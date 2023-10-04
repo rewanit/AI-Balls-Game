@@ -2,11 +2,10 @@
 {
     public static class Helper
     {
-
         public static int[,] Copy(int[,] array)
         {
-            int [,]  newArray = array.Clone() as int[,];
+            int[,] newArray = array.Clone() as int[,];
             return newArray;
-        } 
+        }
     }
 }
