@@ -306,5 +306,15 @@ namespace ConsoleApp3
             sb.AppendLine("------------------------------------------------");
             return sb.ToString();
         }
+
+        internal static void FindLr3_1(State targetState, State initState)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void FindLr3_2(State targetState, State initState)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

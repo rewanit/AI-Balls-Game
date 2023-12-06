@@ -8,8 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Mechanics\" />
-    <Folder Include="Solvers\" />
+    <Compile Remove="Mechanics\**" />
+    <Compile Remove="Solvers\**" />
+    <EmbeddedResource Remove="Mechanics\**" />
+    <EmbeddedResource Remove="Solvers\**" />
+    <None Remove="Mechanics\**" />
+    <None Remove="Solvers\**" />
   </ItemGroup>
 
 </Project>
