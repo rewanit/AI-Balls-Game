@@ -312,6 +312,113 @@ namespace ConsoleApp3
             throw new NotImplementedException();
         }
 
+        private static bool ContainsState(PriorityQueue<State,int> queue, State state)
+        {
+            foreach (var item in queue.)
+            {
+                if (item.Equals(state))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static void AStarSearch(State TargetState, State StartState)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var openSet = new PriorityQueue<State,int>(); // Очередь с приоритетом
+            var closedSet = new HashSet<State>();
+            var cameFrom = new Dictionary<State, State>();
+            var gScore = new Dictionary<State, int>();
+            var fScore = new Dictionary<State, int>();
+
+            gScore[StartState] = 0;
+            fScore[StartState] = CalculateHeuristic(StartState, TargetState); // Используйте вашу эвристическую функцию
+
+            openSet.Enqueue(StartState, fScore[StartState]);
+
+            State result = null;
+
+            while (openSet.Count > 0)
+            {
+                var current = openSet.Dequeue();
+
+                if (current == TargetState)
+                {
+                    result = current;
+                    break;
+                }
+
+                closedSet.Add(current);
+
+                foreach (var neighbor in current.GenStates(closedSet))
+                {
+                    var tentativeGScore = gScore[current] + 1; // Расстояние между узлами всегда 1 (в вашем случае может отличаться)
+
+                    if (!gScore.ContainsKey(neighbor) || tentativeGScore < gScore[neighbor])
+                    {
+                        cameFrom[neighbor] = current;
+                        gScore[neighbor] = tentativeGScore;
+                        fScore[neighbor] = tentativeGScore + CalculateHeuristic(neighbor, TargetState);
+
+
+
+                        if (!ContainsState(openSet, neighbor))
+                        {
+                            openSet.Enqueue(neighbor, fScore[neighbor]);
+                        }
+                    }
+                }
+            }
+
+
+
+            stopwatch.Stop();
+
+            if (result is null)
+            {
+                Console.WriteLine("Решений нет");
+            }
+            else
+            {
+                Console.WriteLine("A* решение");
+
+                var path = ReconstructPath(result, cameFrom, StartState);
+                for (int i = 0; i < path.Count; i++)
+                {
+                    Console.WriteLine($"Step: {i}");
+                    Console.WriteLine(path[i].Print());
+                }
+            }
+
+            Console.WriteLine("Открытых на последнем этапе:" + openSet.Count);
+            Console.WriteLine("Закрытых:" + closedSet.Count);
+            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
+        }
+
+        private static List<State> ReconstructPath(State current, Dictionary<State, State> cameFrom, State start)
+        {
+            var path = new List<State> { current };
+
+            while (cameFrom.ContainsKey(current))
+            {
+                current = cameFrom[current];
+                path.Insert(0, current);
+            }
+
+            return path;
+        }
+
+        private static int CalculateHeuristic(State current, State target)
+        {
+            // Реализуйте свою эвристическую функцию оценки состояния
+            // Это может включать в себя расстояние Манхэттен, евклидово расстояние и т.д.
+            // Пример: return Math.Abs(current.X - target.X) + Math.Abs(current.Y - target.Y);
+            return 0;
+        }
+
         internal static void FindLr3_2(State targetState, State initState)
         {
             throw new NotImplementedException();
