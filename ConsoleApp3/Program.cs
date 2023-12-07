@@ -87,11 +87,9 @@
                     var seed = Random.Shared.Next();
                     InitArray = GenRandom(seed, size); 
 
-                    ArrayToFind = GenSolvable(InitArray, seed, 150);
+                    ArrayToFind = GenSolvable(InitArray, seed, 20);
 
 
-                    Console.WriteLine("101".GetHashCode());
-                    Console.WriteLine("110".GetHashCode());
 
                     //ArrayToFind = GenRandom(seed+1, size);
                 }
@@ -122,8 +120,8 @@
                 //State.Find(TargetState, InitState);
                 //Console.WriteLine("Lr2");
                 //State.FindLr2(TargetState, InitState);
-                Console.WriteLine("Lr3_1");
-                State.FindLr3_1(TargetState, InitState);
+                //Console.WriteLine("Lr3_1");
+                //State.FindLr3_1(TargetState, InitState);
                 Console.WriteLine("Lr3_2");
                 State.FindLr3_2(TargetState, InitState);
 

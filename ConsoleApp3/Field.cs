@@ -12,7 +12,7 @@ namespace ConsoleApp3
         }
 
         private int? Hash;
-
+        private string? md5;
 
         public static string CreateMD5(string input)
         {
@@ -93,7 +93,12 @@ namespace ConsoleApp3
         {
             return CreateMD5(GetArrayString());
         }
-        public string Md5 = "";
+        private string getAndSetMd5()
+        {
+            md5 = GetMD5();
+            return md5;
+        }
+        public string Md5 { get => string.IsNullOrEmpty(md5)? getAndSetMd5() : md5 ; }
         public override int GetHashCode()
         {
             return Hash ?? ComputeHash();

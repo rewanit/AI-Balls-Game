@@ -5,6 +5,7 @@ namespace ConsoleApp3
 {
     public class State
     {
+
         public enum MoveAction
         {
             Row,
@@ -26,13 +27,109 @@ namespace ConsoleApp3
 
         public override bool Equals(object? obj)
         {
-            return this.GetHashCode() == obj.GetHashCode();
+            return this.Field.Md5 == ((State)obj).Field.Md5;
         }
 
         public State? ParentState { get; set; }
         public MoveAction? Action { get; set; }
         public int? ActionId { get; set; }
         public Field Field { get; set; }
+
+
+
+        public static int FindDistanceToClosestElement(int[,] array, int row, int col, int elem)
+        {
+            int numRows = array.GetLength(0);
+            int numCols = array.GetLength(1);
+
+
+            int targetElement = elem;
+
+            int closestDistance = int.MaxValue;
+
+            // Находим ближайший элемент, исключая сам элемент
+            for (int i = 0; i < numRows; i++)
+            {
+                for (int j = 0; j < numCols; j++)
+                {
+                    if (array[i, j] == targetElement)
+                    {
+                        int distance = Math.Abs(row - i) + Math.Abs(col - j);
+                        closestDistance = Math.Min(closestDistance, distance);
+                    }
+                }
+            }
+
+            return closestDistance == int.MaxValue ? -1 : closestDistance;
+        }
+        public static int FindDistanceToClosestElement2(int[,] array, int row, int col, int elem)
+        {
+            int numRows = array.GetLength(0);
+            int numCols = array.GetLength(1);
+
+
+            int targetElement = elem;
+
+            int closestDistance = int.MaxValue;
+
+            // Находим ближайший элемент, исключая сам элемент
+            for (int i = 0; i < numRows; i++)
+            {
+                for (int j = 0; j < numCols; j++)
+                {
+                    if (array[i, j] == targetElement)
+                    {
+                        int distance = (int)Math.Sqrt(Math.Pow(row - i, 2) + Math.Pow(col - j, 2));
+                        closestDistance = Math.Min(closestDistance, distance);
+                    }
+                }
+            }
+
+            return closestDistance == int.MaxValue ? -1 : closestDistance;
+        }
+
+        public int CalculateHeuristic(State target)
+        {
+            int heuristic = 0;
+
+
+            var numRows = Field.Array.GetLength(0);
+            var numCols = Field.Array.GetLength(1);
+
+            for (int i = 0; i < numRows; i++)
+            {
+                for (int l = 0; l < numCols; l++)
+                {
+                    heuristic += FindDistanceToClosestElement(target.Field.Array, i, l, Field.Array[i, l]);
+                }
+
+            }
+
+            return heuristic;
+        }
+
+        public int CalculateHeuristic2(State target)
+        {
+            int heuristic = 0;
+
+
+            var numRows = Field.Array.GetLength(0);
+            var numCols = Field.Array.GetLength(1);
+
+            for (int i = 0; i < numRows; i++)
+            {
+                for (int l = 0; l < numCols; l++)
+                {
+                    heuristic += FindDistanceToClosestElement2(target.Field.Array, i, l, Field.Array[i, l]);
+                }
+
+            }
+
+            return heuristic;
+        }
+
+        private int heuristic;
+
 
         public List<State> ChildStates { get; set; } = new List<State>();
 
@@ -309,71 +406,33 @@ namespace ConsoleApp3
 
         internal static void FindLr3_1(State targetState, State initState)
         {
-            throw new NotImplementedException();
-        }
-
-        private static bool ContainsState(PriorityQueue<State,int> queue, State state)
-        {
-            foreach (var item in queue.)
-            {
-                if (item.Equals(state))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public static void AStarSearch(State TargetState, State StartState)
-        {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            var openSet = new PriorityQueue<State,int>(); // Очередь с приоритетом
-            var closedSet = new HashSet<State>();
-            var cameFrom = new Dictionary<State, State>();
-            var gScore = new Dictionary<State, int>();
-            var fScore = new Dictionary<State, int>();
+            var existedStates = new HashSet<State>();
+            var pool = new PriorityQueue<State,int>(); // Замените на вашу реализацию PriorityQueue
+            initState.heuristic = initState.CalculateHeuristic(targetState);
+            pool.Enqueue(initState, 0); // Начальный узел с приоритетом 0
+            State? result = null;
 
-            gScore[StartState] = 0;
-            fScore[StartState] = CalculateHeuristic(StartState, TargetState); // Используйте вашу эвристическую функцию
-
-            openSet.Enqueue(StartState, fScore[StartState]);
-
-            State result = null;
-
-            while (openSet.Count > 0)
+            while (pool.Count > 0)
             {
-                var current = openSet.Dequeue();
-
-                if (current == TargetState)
+                var currentState = pool.Dequeue();
+                if (currentState.Equals(targetState))
                 {
-                    result = current;
+                    result = currentState;
                     break;
                 }
 
-                closedSet.Add(current);
+                existedStates.Add(currentState);
 
-                foreach (var neighbor in current.GenStates(closedSet))
+                var genStates = currentState.GenStates(existedStates);
+                foreach (var newState in genStates)
                 {
-                    var tentativeGScore = gScore[current] + 1; // Расстояние между узлами всегда 1 (в вашем случае может отличаться)
-
-                    if (!gScore.ContainsKey(neighbor) || tentativeGScore < gScore[neighbor])
-                    {
-                        cameFrom[neighbor] = current;
-                        gScore[neighbor] = tentativeGScore;
-                        fScore[neighbor] = tentativeGScore + CalculateHeuristic(neighbor, TargetState);
-
-
-
-                        if (!ContainsState(openSet, neighbor))
-                        {
-                            openSet.Enqueue(neighbor, fScore[neighbor]);
-                        }
-                    }
+                    newState.heuristic = currentState.heuristic + newState.CalculateHeuristic(targetState);
+                    var priority = newState.heuristic;
+                    pool.Enqueue(newState, priority);
                 }
             }
-
-
 
             stopwatch.Stop();
 
@@ -383,45 +442,94 @@ namespace ConsoleApp3
             }
             else
             {
-                Console.WriteLine("A* решение");
+                Console.WriteLine("Последовательное решение");
 
-                var path = ReconstructPath(result, cameFrom, StartState);
-                for (int i = 0; i < path.Count; i++)
+                var listToPrint = new List<string>();
+
+                while (result?.ParentState != null)
                 {
-                    Console.WriteLine($"Step: {i}");
-                    Console.WriteLine(path[i].Print());
+                    listToPrint.Add(result.Print());
+                    result = result.ParentState;
                 }
-            }
 
-            Console.WriteLine("Открытых на последнем этапе:" + openSet.Count);
-            Console.WriteLine("Закрытых:" + closedSet.Count);
+                listToPrint.Reverse();
+                listToPrint.Insert(0, initState.Print());
+                var step = 0;
+                foreach (var item in listToPrint)
+                {
+                    Console.WriteLine("Step: " + step++);
+                    Console.WriteLine(item);
+                }
+
+            }
+            Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
+            Console.WriteLine("Закрытых:" + existedStates.Count);
             Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
         }
 
-        private static List<State> ReconstructPath(State current, Dictionary<State, State> cameFrom, State start)
-        {
-            var path = new List<State> { current };
-
-            while (cameFrom.ContainsKey(current))
-            {
-                current = cameFrom[current];
-                path.Insert(0, current);
-            }
-
-            return path;
-        }
-
-        private static int CalculateHeuristic(State current, State target)
-        {
-            // Реализуйте свою эвристическую функцию оценки состояния
-            // Это может включать в себя расстояние Манхэттен, евклидово расстояние и т.д.
-            // Пример: return Math.Abs(current.X - target.X) + Math.Abs(current.Y - target.Y);
-            return 0;
-        }
+        
 
         internal static void FindLr3_2(State targetState, State initState)
         {
-            throw new NotImplementedException();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var existedStates = new HashSet<State>();
+            var pool = new PriorityQueue<State, int>(); // Замените на вашу реализацию PriorityQueue
+            initState.heuristic = initState.CalculateHeuristic2(targetState);
+            pool.Enqueue(initState, 0); // Начальный узел с приоритетом 0
+            State? result = null;
+
+            while (pool.Count > 0)
+            {
+                var currentState = pool.Dequeue();
+                if (currentState.Equals(targetState))
+                {
+                    result = currentState;
+                    break;
+                }
+
+                existedStates.Add(currentState);
+
+                var genStates = currentState.GenStates(existedStates);
+                foreach (var newState in genStates)
+                {
+                    newState.heuristic = currentState.heuristic + newState.CalculateHeuristic2(targetState);
+                    var priority = newState.heuristic;
+                    pool.Enqueue(newState, priority);
+                }
+            }
+
+            stopwatch.Stop();
+
+            if (result is null)
+            {
+                Console.WriteLine("Решений нет");
+            }
+            else
+            {
+                Console.WriteLine("Последовательное решение");
+
+                var listToPrint = new List<string>();
+
+                while (result?.ParentState != null)
+                {
+                    listToPrint.Add(result.Print());
+                    result = result.ParentState;
+                }
+
+                listToPrint.Reverse();
+                listToPrint.Insert(0, initState.Print());
+                var step = 0;
+                foreach (var item in listToPrint)
+                {
+                    Console.WriteLine("Step: " + step++);
+                    Console.WriteLine(item);
+                }
+
+            }
+            Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
+            Console.WriteLine("Закрытых:" + existedStates.Count);
+            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
         }
     }
 }
