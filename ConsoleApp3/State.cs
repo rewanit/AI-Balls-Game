@@ -35,6 +35,8 @@ namespace ConsoleApp3
         public int? ActionId { get; set; }
         public Field Field { get; set; }
 
+        public int Depth { get; set; } = 0;
+
 
 
         public static int FindDistanceToClosestElement(int[,] array, int row, int col, int elem)
@@ -140,6 +142,7 @@ namespace ConsoleApp3
             {
                 var newField = Field.MoveColReverse(i);
                 var newState = new State(newField, this, MoveAction.Column, i);
+                newState.Depth = this.Depth + 1;
 
                 if (!existedStates.Contains(newState))
                 {
@@ -206,7 +209,7 @@ namespace ConsoleApp3
                 }
                 else
                 {
-                    //existedStates.EnsureCapacity(existedStates.Count * 8);
+                    existedStates.EnsureCapacity(existedStates.Count * 8);
                     pool.AsParallel().ForAll((x) =>
                     {
                         existedStates.Add(x);
@@ -255,87 +258,46 @@ namespace ConsoleApp3
 
         public static void FindLr2(State TargetState, State StartState)
         {
-            
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var existedStates = new HashSet<State>();
             var existedEndStates = new HashSet<State>();
-            var pool = new HashSet<State>()
-            {
-                StartState
-            };
-            var endPool = new HashSet<State>()
-            {
-                TargetState
-            };
+            var pool = new HashSet<State> { StartState };
+            var endPool = new HashSet<State> { TargetState };
             State? result = null;
             State? endResult = null;
-            while (pool.Count > 0 || endPool.Count >0)
+
+            while (pool.Count > 0 || endPool.Count > 0)
             {
-                HashSet<State> newPool = new HashSet<State>();
-                HashSet<State> newEndPool = new HashSet<State>();
-                var intersect = new HashSet<State>(existedStates);
-                intersect.UnionWith(pool);
-                var endIntersect = new HashSet<State>(existedEndStates);
-                endIntersect.UnionWith(endPool);
-                intersect.IntersectWith(endIntersect);
-                if (intersect.Count()>0)
+                var newPool = new HashSet<State>();
+                var newEndPool = new HashSet<State>();
+
+                var intersect = pool.Intersect(endPool);
+                if (intersect.Any())
                 {
-                    var stateHash = intersect.First();
-                    pool.TryGetValue(stateHash, out result);
-                    endPool.TryGetValue(stateHash, out endResult);
+                    result = intersect.First();
+                    endResult = result; // If there's an intersection, both pools should have the same result
                     break;
                 }
 
+                existedStates.UnionWith(pool);
+                newPool = pool.SelectMany(x => x.GenStates(existedStates)).Where(s => !existedStates.Contains(s)).ToHashSet();
 
-                {
-                   //existedStates.EnsureCapacity(existedStates.Count * 8);
+                existedEndStates.UnionWith(endPool);
+                newEndPool = endPool.SelectMany(x => x.GenReversedStates(existedEndStates)).Where(s => !existedEndStates.Contains(s)).ToHashSet();
 
-
-                    existedStates.UnionWith(pool);
-                    //pool.AsParallel().ForAll((x) =>
-                    //{
-                    //    existedStates.Add(x);
-                    //});
-                    newPool = pool.AsParallel().Select((x) =>
-                    {
-                        var genStates = x.GenStates(existedStates);
-
-                        return genStates;
-                    }).SelectMany(x => x).ToHashSet();
-
-
-
-                    //existedEndStates.EnsureCapacity(existedStates.Count * 8);
-                    existedEndStates.UnionWith(endPool);
-
-                    //endPool.AsParallel().ForAll((x) =>
-                    //{
-                    //    existedEndStates.Add(x);
-                    //});
-                    newEndPool = endPool.AsParallel().Select((x) =>
-                    {
-                        var genStates = x.GenReversedStates(existedEndStates);
-
-                        return genStates;
-                    }).SelectMany(x => x).ToHashSet();
-                }
                 pool = newPool;
                 endPool = newEndPool;
-
             }
+
             stopwatch.Stop();
+
             if (result is null)
             {
                 Console.WriteLine("Решений нет");
             }
             else
             {
-
-
-                var ValidateList = new List<ActionRecord>();
-                Console.WriteLine("Последовательное решение");
-                
                 var listToPrint = new List<string>();
 
                 while (result != null)
@@ -345,7 +307,6 @@ namespace ConsoleApp3
                 }
 
                 listToPrint.Add("+++ Стык +++");
-
 
                 while (endResult != null)
                 {
@@ -359,10 +320,10 @@ namespace ConsoleApp3
                     Console.WriteLine("Step: " + step++);
                     Console.WriteLine(item);
                 }
-
             }
-            Console.WriteLine("Открытых на последнем этапе:" + (pool.Count+endPool.Count));
-            Console.WriteLine("Закрытых:" + (existedStates.Count+existedEndStates.Count));
+
+            Console.WriteLine("Открытых на последнем этапе:" + (pool.Count + endPool.Count));
+            Console.WriteLine("Закрытых:" + (existedStates.Count + existedEndStates.Count));
             Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
         }
 
@@ -428,7 +389,7 @@ namespace ConsoleApp3
                 var genStates = currentState.GenStates(existedStates);
                 foreach (var newState in genStates)
                 {
-                    newState.heuristic = currentState.heuristic + newState.CalculateHeuristic(targetState);
+                    newState.heuristic = newState.Depth + newState.CalculateHeuristic(targetState);
                     var priority = newState.heuristic;
                     pool.Enqueue(newState, priority);
                 }
@@ -474,9 +435,9 @@ namespace ConsoleApp3
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var existedStates = new HashSet<State>();
-            var pool = new PriorityQueue<State, int>(); // Замените на вашу реализацию PriorityQueue
+            var pool = new PriorityQueue<State, int>(); 
             initState.heuristic = initState.CalculateHeuristic2(targetState);
-            pool.Enqueue(initState, 0); // Начальный узел с приоритетом 0
+            pool.Enqueue(initState, 0); 
             State? result = null;
 
             while (pool.Count > 0)
@@ -493,7 +454,7 @@ namespace ConsoleApp3
                 var genStates = currentState.GenStates(existedStates);
                 foreach (var newState in genStates)
                 {
-                    newState.heuristic = currentState.heuristic + newState.CalculateHeuristic2(targetState);
+                    newState.heuristic = newState.Depth + newState.CalculateHeuristic2(targetState);
                     var priority = newState.heuristic;
                     pool.Enqueue(newState, priority);
                 }

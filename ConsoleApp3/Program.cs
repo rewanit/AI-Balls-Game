@@ -119,11 +119,11 @@
                 //Console.WriteLine("Lr1");
                 //State.Find(TargetState, InitState);
                 //Console.WriteLine("Lr2");
-                //State.FindLr2(TargetState, InitState);
+                State.FindLr2(TargetState, InitState);
                 //Console.WriteLine("Lr3_1");
                 //State.FindLr3_1(TargetState, InitState);
-                Console.WriteLine("Lr3_2");
-                State.FindLr3_2(TargetState, InitState);
+                //Console.WriteLine("Lr3_2");
+                //State.FindLr3_2(TargetState, InitState);
 
                 Console.ReadLine();
             }
