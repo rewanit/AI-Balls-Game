@@ -90,9 +90,9 @@ namespace ConsoleApp3
             return closestDistance == int.MaxValue ? -1 : closestDistance;
         }
 
-        public int CalculateHeuristic(State target)
+        public double CalculateHeuristic(State target)
         {
-            int heuristic = 0;
+            double heuristic = 0;
 
 
             var numRows = Field.Array.GetLength(0);
@@ -122,7 +122,7 @@ namespace ConsoleApp3
             {
                 for (int l = 0; l < numCols; l++)
                 {
-                    heuristic += FindDistanceToClosestElement2(target.Field.Array, i, l, Field.Array[i, l]);
+                    heuristic += target.Field.Array[i, l]==Field.Array[i, l]?0:1;
                 }
 
             }
@@ -130,7 +130,7 @@ namespace ConsoleApp3
             return heuristic;
         }
 
-        private int heuristic;
+        private double heuristic;
 
 
         public List<State> ChildStates { get; set; } = new List<State>();
@@ -189,19 +189,142 @@ namespace ConsoleApp3
             return GenStates;
         }
 
-        public static void Find(State TargetState, State StartState)
+        private HashSet<State> GenStatesLr3_1(HashSet<State> existedStates,State targetState)
+        {
+            var GenStates = new HashSet<State>();
+            for (int i = 0; i < Field.Array.GetLength(0); i++)
+            {
+                var newField = Field.MoveCol(i);
+                var newState = new State(newField, this, MoveAction.Column, i);
+                newState.heuristic = newState.Depth + newState.CalculateHeuristic(targetState);
+                if (!existedStates.Contains(newState))
+                {
+                    GenStates.Add(newState);
+                    ChildStates.Add(newState);
+                }
+                else
+                {
+                    State getState;
+                    existedStates.TryGetValue(newState, out getState);
+                    if (newState.Depth < getState.Depth)
+                    {
+                        var parent = getState?.ParentState;
+                        if (parent == null) continue;
+                        parent.ChildStates.Remove(getState);
+                        parent.ChildStates.Add(newState);
+                        newState.ParentState = parent;
+
+                        existedStates.Remove(getState);
+                        existedStates.Add(newState);
+                    }
+                }
+            }
+            for (int i = 0; i < Field.Array.GetLength(1); i++)
+            {
+                var newField = Field.MoveRow(i);
+                var newState = new State(newField, this, MoveAction.Row, i);
+                newState.heuristic = newState.Depth + newState.CalculateHeuristic(targetState);
+                if (!existedStates.Contains(newState))
+                {
+                    GenStates.Add(newState);
+                    ChildStates.Add(newState);
+                }
+                else
+                {
+                    State getState;
+                    existedStates.TryGetValue(newState, out getState);
+                    if (newState.Depth < getState.Depth)
+                    {
+                        var parent = getState?.ParentState;
+                        if (parent == null) continue;
+                        parent.ChildStates.Remove(getState);
+                        parent.ChildStates.Add(newState);
+                        newState.ParentState = parent;
+
+                        existedStates.Remove(getState);
+                        existedStates.Add(newState);
+                    }
+                }
+            }
+            return GenStates;
+        }
+
+        private HashSet<State> GenStatesLr3_2(HashSet<State> existedStates, State targetState)
+        {
+            var GenStates = new HashSet<State>();
+            for (int i = 0; i < Field.Array.GetLength(0); i++)
+            {
+                var newField = Field.MoveCol(i);
+                var newState = new State(newField, this, MoveAction.Column, i);
+                newState.heuristic = -newState.Depth + newState.CalculateHeuristic2(targetState);
+                if (!existedStates.Contains(newState))
+                {
+                    GenStates.Add(newState);
+                    ChildStates.Add(newState);
+                }
+                else
+                {
+                    State getState;
+                    existedStates.TryGetValue(newState, out getState);
+                    if (newState.heuristic < getState.heuristic)
+                    {
+                        var parent = getState?.ParentState;
+                        if (parent == null) continue;
+                        parent.ChildStates.Remove(getState);
+                        parent.ChildStates.Add(newState);
+                        newState.ParentState = parent;
+
+                        existedStates.Remove(getState);
+                        existedStates.Add(newState);
+                    }
+                }
+            }
+            for (int i = 0; i < Field.Array.GetLength(1); i++)
+            {
+                var newField = Field.MoveRow(i);
+                var newState = new State(newField, this, MoveAction.Row, i);
+                newState.heuristic = -newState.Depth + newState.CalculateHeuristic2(targetState);
+                if (!existedStates.Contains(newState))
+                {
+                    GenStates.Add(newState);
+                    ChildStates.Add(newState);
+                }
+                else
+                {
+                    State getState;
+                    existedStates.TryGetValue(newState, out getState);
+                    if (newState.heuristic < getState.heuristic)
+                    {
+                        var parent = getState?.ParentState;
+                        if (parent == null) continue;
+                        parent.ChildStates.Remove(getState);
+                        parent.ChildStates.Add(newState);
+                        newState.ParentState = parent;
+
+                        existedStates.Remove(getState);
+                        existedStates.Add(newState);
+                    }
+                }
+            }
+            return GenStates;
+        }
+
+        public static SolutionInfo Find(State TargetState, State StartState)
         {
             var stopwatch = new Stopwatch();
+            int iterations = 0;
+            int maxOpened = 0;
+
             stopwatch.Start();
             var existedStates = new HashSet<State>();
-            var pool = new HashSet<State>
-            {
-                StartState
-            };
+            var pool = new HashSet<State> { StartState };
             State? result = null;
+
             while (pool.Count > 0)
             {
-                HashSet<State> newPool = new HashSet<State>();
+                iterations++;
+                var newPool = new HashSet<State>();
+
                 if (pool.Contains(TargetState))
                 {
                     pool.TryGetValue(TargetState, out result);
@@ -209,56 +332,58 @@ namespace ConsoleApp3
                 }
                 else
                 {
-                    existedStates.EnsureCapacity(existedStates.Count * 8);
-                    pool.AsParallel().ForAll((x) =>
+                    foreach (var item in pool)
                     {
-                        existedStates.Add(x);
-                    });
-                    newPool = pool.AsParallel().Select((x) =>
-                    {
-                        var genStates = x.GenStates(existedStates);
+                        existedStates.Add(item);
+                    }
 
-                        return genStates;
-                    }).SelectMany(x => x).ToHashSet();
+                    newPool = pool.AsParallel()
+                        .Select(x => x.GenStates(existedStates))
+                        .SelectMany(x => x)
+                        .Where(s => !existedStates.Contains(s))
+                        .ToHashSet();
                 }
+
                 pool = newPool;
+                maxOpened = Math.Max(pool.Count, maxOpened);
             }
+
             stopwatch.Stop();
+
+            var solutionInfo = new SolutionInfo
+            {
+                IsSolutionFound = result != null,
+                OpenedNodesCount = pool.Count,
+                ClosedNodesCount = existedStates.Count,
+                TimeElapsed = stopwatch.Elapsed,
+                Iterations = iterations,
+                MaxOpenedNodesCount = maxOpened
+            };
+
             if (result is null)
             {
-                Console.WriteLine("Решений нет");
+                return solutionInfo;
             }
-            else
+
+            while (result != null)
             {
-                Console.WriteLine("Последовательное решение");
-
-                var listToPrint = new List<string>();
-
-                while (result?.ParentState != null)
-                {
-                    listToPrint.Add(result.Print());
-                    result = result.ParentState;
-                }
-
-                listToPrint.Reverse();
-                listToPrint.Insert(0, StartState.Print());
-                var step = 0;
-                foreach (var item in listToPrint)
-                {
-                    Console.WriteLine("Step: " + step++);
-                    Console.WriteLine(item);
-                }
-              
+                solutionInfo.AddStep(result.Print());
+                result = result.ParentState;
             }
-            Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
-            Console.WriteLine("Закрытых:" + existedStates.Count);
-            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
+
+            solutionInfo.Steps.Insert(0, StartState.Print()); // Вставляем начальное состояние в начало списка шагов
+            solutionInfo.MethodName = "FindLr1";
+
+            return solutionInfo;
         }
 
 
-        public static void FindLr2(State TargetState, State StartState)
+        public static SolutionInfo FindLr2(State TargetState, State StartState)
         {
             var stopwatch = new Stopwatch();
+            int iterations = 0;
+            int maxOpened = 0;
+
             stopwatch.Start();
             var existedStates = new HashSet<State>();
             var existedEndStates = new HashSet<State>();
@@ -269,6 +394,7 @@ namespace ConsoleApp3
 
             while (pool.Count > 0 || endPool.Count > 0)
             {
+                iterations++;
                 var newPool = new HashSet<State>();
                 var newEndPool = new HashSet<State>();
 
@@ -288,44 +414,44 @@ namespace ConsoleApp3
 
                 pool = newPool;
                 endPool = newEndPool;
+                maxOpened = Math.Max(pool.Count+ endPool.Count, maxOpened);
+
             }
 
             stopwatch.Stop();
 
+            var solutionInfo = new SolutionInfo
+            {
+                IsSolutionFound = result != null,
+                OpenedNodesCount = pool.Count + endPool.Count,
+                ClosedNodesCount = existedStates.Count + existedEndStates.Count,
+                TimeElapsed = stopwatch.Elapsed,
+                Iterations = iterations,
+                MaxOpenedNodesCount = maxOpened
+            };
+
             if (result is null)
             {
-                Console.WriteLine("Решений нет");
+                return solutionInfo;
             }
-            else
+
+            while (result != null)
             {
-                var listToPrint = new List<string>();
-
-                while (result != null)
-                {
-                    listToPrint.Insert(0, result.Print());
-                    result = result?.ParentState;
-                }
-
-                listToPrint.Add("+++ Стык +++");
-
-                while (endResult != null)
-                {
-                    listToPrint.Add(endResult.Print());
-                    endResult = endResult?.ParentState;
-                }
-
-                var step = 0;
-                foreach (var item in listToPrint)
-                {
-                    Console.WriteLine("Step: " + step++);
-                    Console.WriteLine(item);
-                }
+                solutionInfo.AddStep(result.Print());
+                result = result?.ParentState;
             }
 
-            Console.WriteLine("Открытых на последнем этапе:" + (pool.Count + endPool.Count));
-            Console.WriteLine("Закрытых:" + (existedStates.Count + existedEndStates.Count));
-            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
+
+            while (endResult != null)
+            {
+                solutionInfo.AddStep(endResult.Print());
+                endResult = endResult?.ParentState;
+            }
+            solutionInfo.MethodName = "FindLr2";
+
+            return solutionInfo;
         }
+
 
         public string Print()
         {
@@ -365,18 +491,22 @@ namespace ConsoleApp3
             return sb.ToString();
         }
 
-        internal static void FindLr3_1(State targetState, State initState)
+        internal static SolutionInfo FindLr3_1(State targetState, State initState)
         {
             var stopwatch = new Stopwatch();
+            int iterations = 0;
+            int maxOpened = 0;
+
             stopwatch.Start();
             var existedStates = new HashSet<State>();
-            var pool = new PriorityQueue<State,int>(); // Замените на вашу реализацию PriorityQueue
+            var pool = new PriorityQueue<State, double>();
             initState.heuristic = initState.CalculateHeuristic(targetState);
-            pool.Enqueue(initState, 0); // Начальный узел с приоритетом 0
+            pool.Enqueue(initState, 0);
             State? result = null;
 
             while (pool.Count > 0)
             {
+                iterations++;
                 var currentState = pool.Dequeue();
                 if (currentState.Equals(targetState))
                 {
@@ -386,62 +516,62 @@ namespace ConsoleApp3
 
                 existedStates.Add(currentState);
 
-                var genStates = currentState.GenStates(existedStates);
+                var genStates = currentState.GenStatesLr3_1(existedStates,targetState);
                 foreach (var newState in genStates)
                 {
                     newState.heuristic = newState.Depth + newState.CalculateHeuristic(targetState);
                     var priority = newState.heuristic;
                     pool.Enqueue(newState, priority);
                 }
+                maxOpened = Math.Max(pool.Count, maxOpened);
             }
 
             stopwatch.Stop();
 
-            if (result is null)
+            var solutionInfo = new SolutionInfo
             {
-                Console.WriteLine("Решений нет");
-            }
-            else
+                IsSolutionFound = result != null,
+                OpenedNodesCount = pool.Count,
+                ClosedNodesCount = existedStates.Count,
+                TimeElapsed = stopwatch.Elapsed,
+                Iterations = iterations,
+                MaxOpenedNodesCount = maxOpened
+            };
+
+            if (result is not null)
             {
-                Console.WriteLine("Последовательное решение");
-
-                var listToPrint = new List<string>();
-
                 while (result?.ParentState != null)
                 {
-                    listToPrint.Add(result.Print());
+                    solutionInfo.AddStep(result.Print());
                     result = result.ParentState;
                 }
 
-                listToPrint.Reverse();
-                listToPrint.Insert(0, initState.Print());
-                var step = 0;
-                foreach (var item in listToPrint)
-                {
-                    Console.WriteLine("Step: " + step++);
-                    Console.WriteLine(item);
-                }
-
+                solutionInfo.Steps.Reverse();
+                solutionInfo.AddStep(initState.Print());
             }
-            Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
-            Console.WriteLine("Закрытых:" + existedStates.Count);
-            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
+            solutionInfo.MethodName = "FindLr3_1";
+
+            return solutionInfo;
         }
 
-        
 
-        internal static void FindLr3_2(State targetState, State initState)
+
+        
+        internal static SolutionInfo FindLr3_2(State targetState, State initState)
         {
             var stopwatch = new Stopwatch();
+            int iterations = 0;
+            int maxOpened = 0;
             stopwatch.Start();
             var existedStates = new HashSet<State>();
-            var pool = new PriorityQueue<State, int>(); 
+            var pool = new PriorityQueue<State, double>();
             initState.heuristic = initState.CalculateHeuristic2(targetState);
-            pool.Enqueue(initState, 0); 
+            pool.Enqueue(initState, 0);
             State? result = null;
 
             while (pool.Count > 0)
             {
+                iterations++;
                 var currentState = pool.Dequeue();
                 if (currentState.Equals(targetState))
                 {
@@ -451,46 +581,43 @@ namespace ConsoleApp3
 
                 existedStates.Add(currentState);
 
-                var genStates = currentState.GenStates(existedStates);
+                var genStates = currentState.GenStatesLr3_2(existedStates,targetState);
                 foreach (var newState in genStates)
                 {
-                    newState.heuristic = newState.Depth + newState.CalculateHeuristic2(targetState);
+                    
                     var priority = newState.heuristic;
                     pool.Enqueue(newState, priority);
                 }
+                maxOpened = Math.Max(pool.Count, maxOpened);
             }
 
             stopwatch.Stop();
 
+            var solutionInfo = new SolutionInfo
+            {
+                IsSolutionFound = result != null,
+                OpenedNodesCount = pool.Count,
+                ClosedNodesCount = existedStates.Count,
+                TimeElapsed = stopwatch.Elapsed,
+                Iterations= iterations,
+                MaxOpenedNodesCount = maxOpened
+            };
+
             if (result is null)
             {
-                Console.WriteLine("Решений нет");
+                return solutionInfo;
             }
-            else
+
+            while (result?.ParentState != null)
             {
-                Console.WriteLine("Последовательное решение");
-
-                var listToPrint = new List<string>();
-
-                while (result?.ParentState != null)
-                {
-                    listToPrint.Add(result.Print());
-                    result = result.ParentState;
-                }
-
-                listToPrint.Reverse();
-                listToPrint.Insert(0, initState.Print());
-                var step = 0;
-                foreach (var item in listToPrint)
-                {
-                    Console.WriteLine("Step: " + step++);
-                    Console.WriteLine(item);
-                }
-
+                solutionInfo.AddStep(result.Print());
+                result = result.ParentState;
             }
-            Console.WriteLine("Открытых на последнем этапе:" + pool.Count);
-            Console.WriteLine("Закрытых:" + existedStates.Count);
-            Console.WriteLine("Время: " + new TimeSpan(stopwatch.ElapsedTicks).ToString(@"mm\:ss\.ffffff"));
+
+            solutionInfo.Steps.Reverse();
+            solutionInfo.AddStep(initState.Print());
+            solutionInfo.MethodName = "FindLr3_2";
+            return solutionInfo;
         }
     }
 }
