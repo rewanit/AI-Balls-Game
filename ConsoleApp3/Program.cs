@@ -100,7 +100,7 @@ namespace ConsoleApp3
                     var seed = Random.Shared.Next();
                     InitArray = GenRandom(seed, size);
 
-                    ArrayToFind = GenSolvable(InitArray, seed, 50);
+                    ArrayToFind = GenSolvable(InitArray, seed, 500);
 
 
 
@@ -201,11 +201,11 @@ namespace ConsoleApp3
 
         public static async void RunMultipleTests(int numberOfTests)
         {
-            TimeSpan timeout = TimeSpan.FromMinutes(10);
+            TimeSpan timeout = TimeSpan.FromSeconds(10);
             for (int i = 1; i <= numberOfTests; i++)
             {
                 Console.WriteLine($"Running Test {i}");
-
+                GC.Collect();
                 // Generate random initial and target states
                 var InitArray = GenRandom(Random.Shared.Next(),4);
                 var ArrayToFind = GenSolvable(InitArray, Random.Shared.Next(),Random.Shared.Next(1,20));

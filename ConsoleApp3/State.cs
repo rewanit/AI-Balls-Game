@@ -371,7 +371,7 @@ namespace ConsoleApp3
                 result = result.ParentState;
             }
 
-            solutionInfo.Steps.Insert(0, StartState.Print()); // Вставляем начальное состояние в начало списка шагов
+            solutionInfo.Steps.Insert(0, StartState.Print()); 
             solutionInfo.MethodName = "FindLr1";
 
             return solutionInfo;
